@@ -42,11 +42,12 @@ function Set-F5PSConfig {
                 # If the config file doesn't exist, create it
                 $null = New-Item -Path $configPath -ItemType File -Force
             }
-        }
-    
-        process {
+
             $ExistingConfig = Get-F5PSConfig
     
+        } # end begin
+    
+        process {
             # If no environment ID passed in, and there is existing value, use existing
             if ((-not $Uri) -and ($ExistingConfig.Uri)) {
                 $Uri = $ExistingConfig.Uri
@@ -55,7 +56,7 @@ function Set-F5PSConfig {
                 Uri = $Uri
             }
             $config | ConvertTo-Json | Set-Content -Path "$configPath"
-    
+
             if ($Token) {
                 $username = 'F5APIToken'
                 $pass = ConvertTo-SecureString $Token -AsPlainText -Force
