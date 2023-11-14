@@ -7,7 +7,8 @@ function Connect-F5 {
         Connect to the F5 Distributed Cloud API
 
     .PARAMETER Uri
-        URI of F5 Distributed Cloud console
+        URI of F5 Distributed Cloud console, for personal accounts it is console.ves.volterra.io
+        For organization plans, it is <tenant>.console.ves.volterra.io
 
     .PARAMETER Token
         API token for F5 Distributed Cloud
