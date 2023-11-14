@@ -1,6 +1,6 @@
 # F5PS
 
-PowerShell module to interact with F5 Distributed Cloud via the API
+PowerShell module to interact with F5 Distributed Cloud via the API endpoint.
 
 ## Getting Started
 
