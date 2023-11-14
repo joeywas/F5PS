@@ -34,16 +34,21 @@ function Connect-F5 {
         Write-Debug "[$($MyInvocation.MyCommand.Name)] Function started"
 
         $config = Get-F5PSConfig
-        $Uri = $config.uri
-        $Token = $config.Token
+        $Uri = $config.Uri
+        $Token = $config.TokenSecret
 
         if (-not $Uri) {
             Write-Warning "[$($MyInvocation.MyCommand.Name)] URI to F5 Distributed Cloud Console is required. Please use Set-F5PSConfig first. Exiting..."
             return
+        } else {
+            Write-Verbose "[$($MyInvocation.MyCommand.Name)] URI to F5 Distributed Cloud Console: $Uri"
         }
+
         if (-not $Token) {
             Write-Warning "[$($MyInvocation.MyCommand.Name)] API Token for F5 Distributed Cloud is required. Please use Set-F5PSConfig first. Exiting..."
             return
+        } else {
+            Write-Verbose "[$($MyInvocation.MyCommand.Name)] Token: True"
         }
 
         # If there is no route passed in, use default web/namespace
@@ -51,7 +56,7 @@ function Connect-F5 {
             $Route = 'web/namespaces'
         }
 
-        $BaseUri = "https://$($config.Uri)/api/$($Route)"
+        $BaseUri = "https://$($Uri)/api/$($Route)"
         $Header = @{
             Authorization = "APIToken $Token"
         }
@@ -59,6 +64,7 @@ function Connect-F5 {
 
     process {
         Write-Debug "[$($MyInvocation.MyCommand.Name)] Header: $($Header | Out-String)"
+        Write-Debug "[$($MyInvocation.MyCommand.Name)] BaseUri: $BaseUri"
 
         try {
             $splatParameter = @{
@@ -68,7 +74,7 @@ function Connect-F5 {
             }
             (Invoke-WebRequest @splatParameter).Content
         } catch {
-            Write-Warning "[$($MyInvocation.MyCommand.Name)] Problem getting $GetTokenURL"
+            Write-Warning "[$($MyInvocation.MyCommand.Name)] Problem getting $BaseUri"
             $_
             return
         } # end try catch for invoke web request
