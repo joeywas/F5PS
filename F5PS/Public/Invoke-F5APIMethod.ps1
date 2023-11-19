@@ -1,143 +1,97 @@
 function Invoke-F5APIMethod {
     <#
     .SYNOPSIS
-        Invoke a method in the F5 API. This is a service function to be called by other functions.
-    
+        Connect to the F5 Distributed Cloud API and execute api method
+
     .DESCRIPTION
-        Invoke a method in the F5 API. This is a service function to be called by other functions.
+        Connect to the F5 Distributed Cloud API
 
-    .PARAMETER Path
-        Path to append to the URL
+    .PARAMETER Uri
+        URI of F5 Distributed Cloud console, for personal accounts it is console.ves.volterra.io
+        For organization plans, it is <tenant>.console.ves.volterra.io
 
-    .PARAMETER Method
-        Defaults to GET
+    .PARAMETER Token
+        API token for F5 Distributed Cloud
     
-    .PARAMETER Headers
-        Headers to use. Will be joined with authorization header.
-    
-    .PARAMETER RestResponseProperty
-        Property of the rest response to return as results.
-      
+    .PARAMETER Route
+        Route to append to the call
+
     .EXAMPLE
-        Invoke-F5APIMethod -RestResponseProperty namespaces
-    
+        Connect-F5
+
     .NOTES
-        https://api.F5.com/spec/#/
         https://docs.cloud.f5.com/docs/how-to/volterra-automation-tools/apis
-        
     #>
-    
-        [CmdletBinding()]
-        param(
-            [Parameter(Mandatory)]
-            [string]$Path,
-            [string]$uri,
-            [Microsoft.PowerShell.Commands.WebRequestMethod]$Method = 'GET',
-            [Hashtable]$Headers,
-            [string]$RestResponseProperty,
-            [System.Object]$Body
-        )
-    
-        begin {
-            Write-Verbose "[$($MyInvocation.MyCommand.Name)] Function started"
-            Write-Debug "[$($MyInvocation.MyCommand.Name)] Function started. PSBoundParameters: $($PSBoundParameters | Out-String)"
-    
-    #region Headers
-            $config = Get-F5PSConfig
-            $token = $config.TokenSecret
+    [CmdletBinding()]
+    param(
+        [String]$Uri,
+        [String]$Token,
+        [String]$Route,
+        [Microsoft.PowerShell.Commands.WebRequestMethod]$Method = 'GET',
+        [String]$Body,
+        [String]$RestResponseProperty
+    )
 
-            if (-not $uri) {
-                $uri = $config.uri
-            }
+    begin {
+        Write-Verbose "[$($MyInvocation.MyCommand.Name)] Function started"
+        Write-Debug "[$($MyInvocation.MyCommand.Name)] Function started"
 
-            if (-not $token) {
-                Write-Warning "[$($MyInvocation.MyCommand.Name)] Must first configure an access token with Set-F5PSConfig -Token <token>. Exiting..."
-                return
-            }
-    
-            if (-not $uri) {
-                Write-Warning "[$($MyInvocation.MyCommand.Name)] No uri passed in and no saved uri. Pass in uri or or configure a uri with Set-F5PSConfig -Uri <uri>. Exiting..."
-                return
-            } else {
-                $uri = "https://$($uri)/api/$($Path)"
-            }
+        $config = Get-F5PSConfig
+        $Uri = $config.Uri
+        $Token = $config.TokenSecret
 
-            $_headers = @{
-                Authorization = "API Token $token"
-            }
-
-            if ($Headers) {
-                $_headers += $Headers
-            }
-
-            Write-Verbose "[$($MyInvocation.MyCommand.Name)] URI: [$Uri]"
-    
-            try {
-                $splatParameters = @{
-                    Uri = $Uri
-                    Method = $Method
-                    Headers = $_headers
-                }
-                # If -body parm is used, we add it to the splat parameters
-                if ($body) {
-                    Write-Debug "[$($MyInvocation.MyCommand.Name)] body: $($body | Out-String)"
-                    $splatParameters += @{
-                        Body = $body
-                    }
-                }
-
-                # if contenttype is defined, add it to the parameters
-                if ($ContentType) {
-                    $splatParameters += @{
-                        ContentType = $ContentType
-                    }
-                }
-    
-                Write-Debug "[$($MyInvocation.MyCommand.Name)] splatParameters: $($splatParameters | Out-String)"
-    
-                # Invoke-WebRequest (IWR) to F5. We use IWR instead of Invoke-RestMethod (IRM) because of reasons:
-                # 1) IWR is standard from PS version 3 and up. IRM is not
-                # 2) IRM doesn't do good job of returning headers and status codes consistently. IWR does.
-                #
-                # https://www.truesec.com/hub/blog/invoke-webrequest-or-invoke-restmethod
-                $Response = Invoke-WebRequest @splatParameters
-                $RestResponse = $Response.Content | ConvertFrom-JSON
-                $ResponseHeaders = $Response.Headers
-                $StatusCode = $Response.StatusCode
-    
-                Write-Debug "[$($MyInvocation.MyCommand.Name)] RestResponse: $($RestResponse | Out-String)"
-                Write-Debug "[$($MyInvocation.MyCommand.Name)] ResponseHeaders: $($ResponseHeaders | Out-String)"
-                Write-Debug "[$($MyInvocation.MyCommand.Name)] StatusCode: $($StatusCode | Out-String)"
-    
-            } catch {
-                Write-Warning "[$($MyInvocation.MyCommand.Name)] Problem with Invoke-WebRequest $uri"
-                $_
-                return
-            }
-            Write-Verbose "[$($MyInvocation.MyCommand.Name)] Executed Invoke-WebRequest"
-    
-            # If there are bad status codes, this will break and cause function to exit
-            #Test-ServerResponse -InputObject $RestResponse -StatusCode $StatusCode
+        if (-not $Uri) {
+            Write-Warning "[$($MyInvocation.MyCommand.Name)] URI to F5 Distributed Cloud Console is required. Please use Set-F5PSConfig first. Exiting..."
+            return
+        } else {
+            Write-Verbose "[$($MyInvocation.MyCommand.Name)] URI to F5 Distributed Cloud Console: $Uri"
         }
-    
-        process {
-            if ($RestResponse) {
-                Write-Verbose "[$($MyInvocation.MyCommand.Name)] process: RestResponse true"
-    
-                if ($RestResponseProperty) {
-                    Write-Verbose "[$($MyInvocation.MyCommand.Name)] process: RestResponseProperty $($RestResponseProperty)"
-                    $result = ($RestResponse).$RestResponseProperty
-                } else {
-                    $result = $RestResponse
-                }
 
-                $result
-            } else {
-                Write-Verbose "[$($MyInvocation.MyCommand.Name)] process: RestResponse false"
-            }
+        if (-not $Token) {
+            Write-Warning "[$($MyInvocation.MyCommand.Name)] API Token for F5 Distributed Cloud is required. Please use Set-F5PSConfig first. Exiting..."
+            return
+        } else {
+            Write-Verbose "[$($MyInvocation.MyCommand.Name)] Token: True"
         }
-        end {
-            Write-Verbose "[$($MyInvocation.MyCommand.Name)] Complete"
-            Write-Debug "[$($MyInvocation.MyCommand.Name)] Complete"
+
+        # If there is no route passed in, use default route of web/namespace
+        # list of service previxes are availab here https://docs.cloud.f5.com/docs/how-to/volterra-automation-tools/apis
+        if (-not $Route) {
+            $Route = 'web/namespaces'
+        }
+
+        $BaseUri = "https://$($Uri)/api/$($Route)"
+        $Header = @{
+            Authorization = "APIToken $Token"
         }
     }
+
+    process {
+        Write-Debug "[$($MyInvocation.MyCommand.Name)] Header: $($Header | Out-String)"
+        Write-Debug "[$($MyInvocation.MyCommand.Name)] BaseUri: $BaseUri"
+
+        try {
+            $splatParameter = @{
+                Uri = $BaseUri
+                Method = $Method
+                Header = $Header
+            }
+            $Content = (Invoke-WebRequest @splatParameter).Content | ConvertFrom-JSON -depth 100
+        } catch {
+            Write-Warning "[$($MyInvocation.MyCommand.Name)] Problem getting $BaseUri"
+            $_
+            return
+        } # end try catch for invoke web request
+        
+        if ($RestResponseProperty) {
+            ($Content)."$RestResponseProperty"
+        } else {
+            $Content
+        }
+        
+    } # end process
+    end {
+        Write-Verbose "[$($MyInvocation.MyCommand.Name)] Complete"
+        Write-Debug "[$($MyInvocation.MyCommand.Name)] Complete"
+    }
+}
